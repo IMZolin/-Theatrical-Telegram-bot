@@ -82,6 +82,7 @@ def InformationInFile(soup):
             performance_data_list.append(
                 {
                     "Название спектакля:": performance_name.text,
+                    #"День и время:": performance_day,
                     "Дата:": performance_day,
                     "Время:": performance_time,
                     "Жанр:": genre,
