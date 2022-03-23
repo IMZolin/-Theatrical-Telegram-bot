@@ -1,0 +1,1 @@
+#Project for Fundamentals of project activity in Peter the Great St.Petersburg Polytechnic University
