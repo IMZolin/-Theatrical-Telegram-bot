@@ -2,6 +2,7 @@ import requests
 import json
 import pandas as pd
 from bs4 import BeautifulSoup
+from datetime import date, timedelta
 
 def GetHTML():
     url = 'https://www.afisha.ru/spb/schedule_theatre/'
@@ -24,8 +25,57 @@ def ConvertToExcel():
         df_json = pd.read_json("all_performance_dict.json")
         df_json.to_excel("all_performance_dict.xlsx")
 
+def GetPage(url):
+    headers = {
+        "accept": "*/*",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
+    }
+    req = requests.get(url, headers)
+    src = req.text
+    performance_url_name = url.split("/")[-2]
+    with open(f"data/{performance_url_name}.html", "w", encoding="utf-8") as file:
+        file.write(src)
+    with open(f"data/{performance_url_name}.html", 'r', encoding='utf-8') as file:
+        src = file.read()
+    soup = BeautifulSoup(src, 'lxml')
+    return [soup, performance_url_name]
+
+def GetIngormationFromPage(soup, performance_url_name):
+    with open(f"data/{performance_url_name}.html", 'r', encoding='utf-8') as file:
+        src = file.read()
+    soup = BeautifulSoup(src, "lxml")
+    additional_inf_performances = []
+    performance_data = soup.find_all("span", class_="_1gC4P")
+    performance_age = performance_data[1]
+    performance_place_adress = soup.find("div", class_="_2jztV _2Nzs2 _2XtXq")
+    performance_place_metro = performance_place_adress.find_next()
+    soup.find("div", class_="_3NqYW G_0Rp")
+    performance_duration = performance_data[3]
+    # if(performance_data[2].find("назад")):
+    #     performance_duration = performance_data[1].get_text()
+    # else:
+    #     performance_duration = performance_data[3]
+    # if(performance_data[2].find("назад")):
+    #     performance_duration = performance_data[1]
+    # elif(performance_data[2].find(",") ):
+    #     performance_duration = performance_data[2]
+    #
+    # else:
+    #     performance_duration = performance_data[3]
+
+    performance_adress = performance_place_adress.find("span", class_="_1gC4P")
+    performance_undeground = performance_place_metro.find("span", class_="_3OB5r")
+
+    #print(f"Duration {performance_duration.text}")
+    #print(f"Adress {performance_adress.text}")
+    # print(f"Undeground {performance_undeground.text}")
+    return [performance_age.get_text(), performance_undeground]
+
 def InformationInFile(soup):
+    # today = datetime.date.today()
     genre = ""
+    duration = ""
+    age =""
     pages = 49
     performance_data_list = []
     with open("index.html", encoding='utf-8') as file:
@@ -56,40 +106,46 @@ def InformationInFile(soup):
             all_day_list = all_day.split(',')
             performance_time = ""
             performance_day = ""
-            #print(all_day_list)
             str_day = all_day_list[0]
-            #print(str_day)
             str_day_list = str_day.split(' ')
             if(str_day_list[0] == 'Сегодня'):
                 performance_day = str_day_list[0]
+                #performance_day = date.today()
+            elif (str_day_list[0] == 'Завтра'):
+                performance_day = str_day_list[0]
+                #performance_day = date.today()
+                #performance_day = date.today() + timedelta(days=1)
             else:
                 performance_day = str_day_list[0] + ' ' + str_day_list[1]
-            #print(str_day_list)
-            #performance_time = str_day_list[2]
-            print(performance_day)
+            # print(performance_day)
 
             if (str_day_list[1] == 'в'):
                 performance_time = str_day_list[2]
             else:
                 performance_time = str_day_list[3]
-            print(performance_time)
+            # print(performance_time)
 
         if (performance.find("span", class_="_21BWX _2O1ut _1lIKZ bsB4F")):
             performance_price = performance.find("span", class_="_21BWX _2O1ut _1lIKZ bsB4F").find("span")
         performance_urls = "https://www.afisha.ru" + performance.find("div", class_="_1V-Pk").find("a").get("href")
+        age = GetIngormationFromPage(GetPage(performance_urls)[0],GetPage(performance_urls)[1])[0]
+        undeground = GetIngormationFromPage(GetPage(performance_urls)[0], GetPage(performance_urls)[1])[1]
         if (
                 performance_name and performance_min_discription and performance_theatre and performance_rating and performance_urls and performance_price):
             performance_data_list.append(
                 {
-                    "Название спектакля:": performance_name.text,
-                    "Дата:": performance_day,
-                    "Время:": performance_time,
-                    "Жанр:": genre,
-                    "Рейтинг:": performance_rating.text,
-                    "Цена:": performance_price.text,
-                    "Театр:": performance_theatre.text,
-                    "Описание:": performance_min_discription.text,
-                    "URL спектакля:": performance_urls,
+                    "Название спектакля": performance_name.text,
+                    "Дата": performance_day,
+                    "Время": performance_time,
+                    "Жанр": genre,
+                    "Возраст": age,
+                    "Рейтинг": performance_rating.text,
+                    "Цена": performance_price.text,
+                    "Театр": performance_theatre.text,
+                    #"Длительность": duration,
+                    "Описание": performance_min_discription.text,
+                    #"Метро": undeground,
+                    "URL спектакля": performance_urls,
                 }
             )
     print(performance_data_list)
@@ -98,6 +154,7 @@ def InformationInFile(soup):
         # data=json.load(file)
         # df=pd.DataFrame(data)
         # df.to_excel("performance_list.xlsx")
+
 
 def main():
     GetHTML()
