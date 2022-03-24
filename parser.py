@@ -66,14 +66,11 @@ def GetIngormationFromPage(soup, performance_url_name):
     performance_adress = performance_place_adress.find("span", class_="_1gC4P")
     performance_undeground = performance_place_metro.find("span", class_="_3OB5r")
 
-    #print(f"Duration {performance_duration.text}")
-    #print(f"Adress {performance_adress.text}")
-    # print(f"Undeground {performance_undeground.text}")
-    return [performance_age.get_text(), performance_undeground]
+    return [performance_age.get_text(), performance_adress.get_text(),performance_duration.get_text()]
 
 def InformationInFile(soup):
-    # today = datetime.date.today()
     genre = ""
+    adress = ""
     duration = ""
     age =""
     pages = 49
@@ -117,35 +114,57 @@ def InformationInFile(soup):
                 #performance_day = date.today() + timedelta(days=1)
             else:
                 performance_day = str_day_list[0] + ' ' + str_day_list[1]
-            # print(performance_day)
 
             if (str_day_list[1] == 'в'):
                 performance_time = str_day_list[2]
             else:
                 performance_time = str_day_list[3]
-            # print(performance_time)
 
         if (performance.find("span", class_="_21BWX _2O1ut _1lIKZ bsB4F")):
             performance_price = performance.find("span", class_="_21BWX _2O1ut _1lIKZ bsB4F").find("span")
+            all_price = performance_price.get_text()
+            all_price_list = all_price.split(' ')
+            price = all_price_list[1]
+
         performance_urls = "https://www.afisha.ru" + performance.find("div", class_="_1V-Pk").find("a").get("href")
+
         age = GetIngormationFromPage(GetPage(performance_urls)[0],GetPage(performance_urls)[1])[0]
-        undeground = GetIngormationFromPage(GetPage(performance_urls)[0], GetPage(performance_urls)[1])[1]
+        adress_all = GetIngormationFromPage(GetPage(performance_urls)[0], GetPage(performance_urls)[1])[1]
+        adress_list = adress_all.split(' ')
+        adress = adress_all
+        if(len(adress_list) == 3):
+            if(adress_list[2] == 'назад'):
+                #print(adress_list)
+                adress = -1
+
+        duration_all = GetIngormationFromPage(GetPage(performance_urls)[0], GetPage(performance_urls)[1])[2]
+        duration_list = duration_all.split(' ')
+        duration = duration_all
+        if (len(duration_list) == 3):
+            print(duration_list)
+            duration = -1
+        if(len(duration_list) == 2):
+            duration = -1
+
         if (
                 performance_name and performance_min_discription and performance_theatre and performance_rating and performance_urls and performance_price):
             performance_data_list.append(
                 {
-                    "Название спектакля": performance_name.text,
-                    "Дата": performance_day,
-                    "Время": performance_time,
-                    "Жанр": genre,
-                    "Возраст": age,
-                    "Рейтинг": performance_rating.text,
-                    "Цена": performance_price.text,
-                    "Театр": performance_theatre.text,
-                    #"Длительность": duration,
+                    "Название": performance_name.text,
                     "Описание": performance_min_discription.text,
+                    "Цена от": price,
+                    "Время начала": performance_time,
+                    "Дата словами": performance_day,
+                    "Жанр": genre,
+                    "Рейтинг": performance_rating.text,
+                    "Ссылка": performance_urls,
+                    "Театр": performance_theatre.text,
+                    "Возрастное ограничение": age,
+                    "Адрес театра": adress,
+                    "Продолжительность": duration,
+                    #"Длительность": duration,
                     #"Метро": undeground,
-                    "URL спектакля": performance_urls,
+
                 }
             )
     print(performance_data_list)
