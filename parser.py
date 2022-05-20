@@ -173,12 +173,14 @@ def InformationInFile():
                     performance_time = str_day_list[2]
                 else:
                     performance_time = str_day_list[3]
-
-            if (performance.find("span", class_="_21BWX _2O1ut _1lIKZ bsB4F")):
-                performance_price = performance.find("span", class_="_21BWX _2O1ut _1lIKZ bsB4F").find("span")
-                all_price = performance_price.get_text()
-                all_price_list = all_price.split(' ')
-                price = all_price_list[1]
+            try:
+                if (performance.find("span", class_="_21BWX _2O1ut _1lIKZ bsB4F")):
+                    performance_price = performance.find("span", class_="_21BWX _2O1ut _1lIKZ bsB4F").find("span")
+                    all_price = performance_price.get_text()
+                    all_price_list = all_price.split(' ')
+                    price = all_price_list[1]
+            except Exception:
+                print("Some error")
 
             performance_urls = "https://www.afisha.ru" + performance.find("div", class_="_1V-Pk").find("a").get("href")
 
@@ -196,23 +198,24 @@ def InformationInFile():
 
             if (
                     performance_name and performance_min_discription and performance_theatre and performance_rating and performance_urls ):
-                performance_data_list.append(
-                    {
-                        "Название представления": performance_name.text,
-                        "Описание": performance_min_discription.text,
-                        "Минимальная цена": price,
-                        "Ближайшее время": performance_time,
-                        "Ближайшая дата": performance_day,
-                        "Жанр": genre,
-                        "Рейтинг": performance_rating.text,
-                        "Театр": performance_theatre.text,
-                        "Ссылка на представление": performance_urls,
-                        "Возрастное ограничение": age,
-                        "Адрес театра": adress,
-                        "Продолжительность": duration,
-                        "Другие даты и время": -1,
-                    }
-                )
+                    performance_data_list.append(
+                        {
+                            "Название представления": performance_name.text,
+                            "Описание": performance_min_discription.text,
+                            "Минимальная цена": price,
+                            "Ближайшее время": performance_time,
+                            "Ближайшая дата": performance_day,
+                            "Жанр": genre,
+                            "Рейтинг": performance_rating.text,
+                            "Театр": performance_theatre.text,
+                            "Ссылка на представление": performance_urls,
+                            "Возрастное ограничение": age,
+                            "Адрес театра": adress,
+                            "Продолжительность": duration,
+                            "Другие даты и время": -1,
+                        }
+                    )
+
         print(performance_data_list)
         with open("all_performance_dict.json", "w", encoding='utf-8') as file:
             json.dump(performance_data_list, file, indent=4, ensure_ascii=False)

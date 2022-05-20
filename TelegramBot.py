@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 import telebot #импорт pyTelegramBotAPI 
 from telebot import types #также достанем типы
@@ -28,19 +28,24 @@ def button_main_menu(message):
     item4=types.KeyboardButton("Дата")
     item5=types.KeyboardButton("Поиск по цене")
     item7=types.KeyboardButton("Поиск по возрасту")
+    item8=types.KeyboardButton("Возврат к главным командам")
     item=types.KeyboardButton("ИНФО")
     markup.add(item1, item2, item3, item4, item5)
     markup.add(item7)
+    markup.add(item8)
     markup.add(item)
     bot.send_message(message.chat.id,'Ты находишься в главном меню! Здесь можно выбрать, какие подборки мне показать.',reply_markup=markup)
     bot.send_message(message.chat.id,'Если хочешь узнать, какая кнопка за что отвечает, просто нажми или отправь "ИНФО" в чат')
 
 @bot.message_handler(commands=['test'])
 def test(message):
+    rv = xlrd.open_workbook("D:/_New/Program vs/bot/TelegranBot2/Viktorina.xlsx")
+    rsheetv = rv.sheet_by_index(0)
     send_message_after_test(message)
-    bot.register_next_step_handler(message, func_start)
-    
+    #bot.register_next_step_handler(message, func_start)
+    bot.register_next_step_handler(message, func_quiz_start, rsheetv)
 
+    
 @bot.message_handler(commands=['selections'])
 def send_message_after_selections(message):
     bot.send_message(message.chat.id, 'Данная команда поможет тебе увидеть авторские подборки от театральных экспертов🤓')
@@ -58,7 +63,7 @@ def send_message_after_selections(message):
 
 @bot.message_handler(content_types=['text'])
 def message_reply(message):
-    rb = xlrd.open_workbook("E:/pytton/Bott/theatres_table (1).xlsx")
+    rb = xlrd.open_workbook("D:/_New/Program vs/bot/TelegranBot2/theatres_table.xlsx")
     rsheet = rb.sheet_by_index(0)
     
     #Главные команды
@@ -68,7 +73,8 @@ def message_reply(message):
         button_main_menu(message)
     elif (message.text=="Хэлп" or message.text=="Хелп" or message.text=="Помоги" or message.text=="Помощь" or message.text=="help" or message.text=="help me"):
         send_message_after_help(message)
-
+    if message.text=="Возврат к главным командам":
+        send_message_after_help(message)
     #Главные кнопки
     elif message.text=="Поиск по названию":
         bot.send_message(message.chat.id, 'Хочешь узнать подробнее о представлении? Без проблем! Просто введи его название:')
@@ -123,28 +129,39 @@ def message_reply(message):
 
 def send_message_after_test(message):
     markup=types.ReplyKeyboardMarkup(resize_keyboard=True)
-    item1=types.KeyboardButton("Start")
+    item1=types.KeyboardButton("Начать викторину")
     markup.add(item1)
     bot.send_message(message.chat.id,'Начинаем викторину💡',reply_markup=markup)
 
-def func_start(message):
-     if(message.text == "Start"):
-       mess_after_start(message)
-       bot.register_next_step_handler(message,  func_start2)
-
-def func_start2(message):
-    if (message.text == "Ответ"):
-        bot.send_message(message.chat.id,'1756')
-        bot.register_next_step_handler(message,  func_start3)
+def func_quiz(message, number, rsheetv):
+    if (message.text == "Ответ" and number < 10):
+        bot.send_message(message.chat.id, f'Ответ:\n {rsheetv.cell(number, 1).value}')
+        if (number==9):
+            bot.send_message(message.chat.id, f'Поздравляю! Ты прошел всю викторину. Нажми кнопку "Выход из викторины"')
+    elif (message.text == "Следующий вопрос"):
+        if(number<9):
+            number=number+1
+            bot.send_message(message.chat.id, f'Вопрос номер {number+1}')
+            bot.send_message(message.chat.id, f'{rsheetv.cell(number, 0).value}')
+        else:
+            bot.send_message(message.chat.id, f'Поздравляю! Ты прошел всю викторину. Нажми кнопку "Выход из викторины"')
     elif (message.text == "Выход из викторины"):
         send_message_after_help(message)
-    elif (message.text == "Следующий вопрос"):
-        func_start3(message)
+    if (message.text != "Выход из викторины"):
+        bot.register_next_step_handler(message,  func_quiz, number, rsheetv)
 
-def func_start3(message):
-    if (message.text == "Следующий вопрос"):
-        bot.send_message(message.chat.id,'Где находится Мариинский театр?💡')
-        bot.register_next_step_handler(message,  send_message_after_help)
+def func_quiz_start(message, rsheetv):
+     if(message.text == "Начать викторину"):
+        number=0
+        bot.send_message(message.chat.id, f'Всего в викторине 10 вопросов. Удачи!')
+        mess_after_start_quiz(message, number)
+        bot.send_message(message.chat.id, f'{rsheetv.cell(number, 0).value}')
+        bot.register_next_step_handler(message,  func_quiz, number, rsheetv)
+        #bot.register_next_step_handler(message,  func_quiz_start2, rsheetv, number)
+
+def func_quiz_start2(message, rsheetv, number):
+    #bot.send_message(message.chat.id, f'Вопрос:\n {rsheetv.cell(number, 0).value}')
+    bot.register_next_step_handler(message,  func_quiz, number, rsheetv)
 
 def mess_after_start(message):
     markup=types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -153,7 +170,18 @@ def mess_after_start(message):
     item3=types.KeyboardButton("Выход из викторины")
     markup.add(item1, item2)
     markup.add(item3)
-    bot.send_message(message.chat.id,'В каком году был основан Александринский театр?',reply_markup=markup)
+    #bot.send_message(message.chat.id,'Вопрос\n',reply_markup=markup)
+    bot.send_message(message.chat.id,'\n', reply_markup=markup)
+
+def mess_after_start_quiz(message, number):
+    markup=types.ReplyKeyboardMarkup(resize_keyboard=True)
+    item1=types.KeyboardButton("Следующий вопрос")
+    item2=types.KeyboardButton("Ответ")
+    item3=types.KeyboardButton("Выход из викторины")
+    markup.add(item1, item2)
+    markup.add(item3)
+    #bot.send_message(message.chat.id,'Вопрос\n',reply_markup=markup)
+    bot.send_message(message.chat.id, f'Вопрос номер {number+1}', reply_markup=markup)
 
 def date_func(message):
     markup=types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -561,7 +589,7 @@ def message_answer_price_after_genre_after_date(message):
     buttongenre4=types.KeyboardButton("Вернуться в главное меню")
     markup.add(buttongenre1, buttongenre2)
     markup.add(buttongenre4)
-    bot.send_message(message.chat.id,'Давай я объясню поподробнее!\nПриоритет по цене - поиск самой низкой цены, а затем уже поиск по рейтингу\nПриоритет по рейтингу - я нахожу представления с самым высоким рейтингом и самыми низкими ценами в этом рейтинге\n Максимальная цена... Тут всё понятно, я найду представления, диапазон цен которых не превышает заданный тобой!',reply_markup=markup)
+    bot.send_message(message.chat.id,'Давай я объясню поподробнее!\nПриоритет по цене - поиск самой низкой цены, а затем уже поиск по рейтингу\nПриоритет по рейтингу - я нахожу представления с самым высоким рейтингом и самыми низкими ценами в этом рейтинге',reply_markup=markup)
 
 def message_answer_price_after_genre_after_date2(message, rsheet, parameters):
     parameters[2]=message.text
@@ -792,7 +820,7 @@ def button_age_search(message):
     item2=types.KeyboardButton("6+")
     item3=types.KeyboardButton("12+")
     item4=types.KeyboardButton("16+")
-    item5=types.KeyboardButton("18")
+    item5=types.KeyboardButton("18+")
     item6=types.KeyboardButton("Вернуться в главное меню")
     markup.add(item1, item2, item3, item4, item5)
     markup.add(item6)
@@ -813,7 +841,7 @@ def button_age_search2(message, rsheet):
                         continue
                 else:
                     continue
-            if(number<=5):
+            if(number<5):
                 if(message.text==rsheet.cell(rowcounter, 9).value):
                     info_about_performance_one(message, rsheet, rowcounter)
                     number+=1
